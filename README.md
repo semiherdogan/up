@@ -30,7 +30,7 @@ Requires macOS 15 or later. Developed and tested on macOS 27.
 
 ## Usage
 
-Click the cup in the menu bar.
+Click the arrow in the menu bar. It is filled while your Mac is kept awake and hollow otherwise.
 
 - Pick a duration under **Keep Awake For** to start a session. The first line shows until when your Mac stays awake.
 - **End Session** stops it. Inside a schedule, that schedule stays quiet until its current time range is over. Turn the schedule off and on to resume it earlier.

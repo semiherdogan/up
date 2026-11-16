@@ -11,7 +11,7 @@ struct UpApp: App {
         MenuBarExtra {
             MenuContent(controller: controller)
         } label: {
-            Image(systemName: controller.state.isActive ? "cup.and.saucer.fill" : "cup.and.saucer")
+            Image(systemName: controller.state.isActive ? "arrowshape.up.fill" : "arrowshape.up")
         }
 
         Window("Schedules", id: Self.schedulesWindowID) {
