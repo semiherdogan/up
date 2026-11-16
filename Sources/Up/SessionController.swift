@@ -16,18 +16,19 @@ final class SessionController {
     @ObservationIgnored private var timer: Timer?
     @ObservationIgnored private let caffeinate = Caffeinate()
     @ObservationIgnored private let store: ScheduleStore
+    @ObservationIgnored private let notifier = Notifier()
 
     init(store: ScheduleStore = ScheduleStore()) {
         self.store = store
         schedules = store.load()
         observeSystemEvents()
         caffeinate.onUnexpectedExit = { [weak self] lifetime in self?.caffeinateExited(after: lifetime) }
-        evaluate()
+        evaluate(notify: true)
     }
 
     func start(duration: TimeInterval?) {
         manual = duration.map { .until(Date().addingTimeInterval($0)) } ?? .indefinite
-        evaluate()
+        evaluate(notify: false)
     }
 
     func end() {
@@ -35,7 +36,7 @@ final class SessionController {
         // An ended schedule stays quiet until its current window closes.
         let activeEnds = SessionPlanner.activeWindowEnds(at: Date(), schedules: schedules, calendar: .current)
         suppressedUntil.merge(activeEnds) { _, new in new }
-        evaluate()
+        evaluate(notify: false)
     }
 
     func setSchedules(_ newValue: [Schedule]) {
@@ -46,10 +47,10 @@ final class SessionController {
         }
         schedules = newValue
         store.save(newValue)
-        evaluate()
+        evaluate(notify: false)
     }
 
-    private func evaluate() {
+    private func evaluate(notify: Bool) {
         let now = Date()
         if case .until(let end)? = manual, end <= now { manual = nil }
         suppressedUntil = suppressedUntil.filter { $0.value > now }
@@ -63,8 +64,12 @@ final class SessionController {
         )
         do {
             try caffeinate.setRunning(plan.state.isActive)
+            let previous = state
             state = plan.state
             errorMessage = nil
+            if notify, let event = SessionEvent(from: previous, to: plan.state) {
+                notifier.post(event)
+            }
         } catch {
             fail("Could not start caffeinate: \(error.localizedDescription)")
         }
@@ -77,7 +82,7 @@ final class SessionController {
             fail("caffeinate exited right after starting.")
             return
         }
-        evaluate()
+        evaluate(notify: true)
     }
 
     private func fail(_ message: String) {
@@ -85,6 +90,7 @@ final class SessionController {
         manual = nil
         state = .idle
         errorMessage = message
+        notifier.postFailure(message)
     }
 
     private func scheduleTimer(at date: Date?) {
@@ -92,7 +98,7 @@ final class SessionController {
         timer = nil
         guard let date else { return }
         let timer = Timer(fire: date, interval: 0, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated { self?.evaluate() }
+            MainActor.assumeIsolated { self?.evaluate(notify: true) }
         }
         // .common keeps the timer firing while the menu is open.
         RunLoop.main.add(timer, forMode: .common)
@@ -101,7 +107,7 @@ final class SessionController {
 
     private func observeSystemEvents() {
         let reevaluate: @Sendable (Notification) -> Void = { [weak self] _ in
-            MainActor.assumeIsolated { self?.evaluate() }
+            MainActor.assumeIsolated { self?.evaluate(notify: true) }
         }
         // Timers do not fire during sleep, and a clock change makes the pending fire date wrong.
         NSWorkspace.shared.notificationCenter.addObserver(

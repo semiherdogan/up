@@ -11,7 +11,8 @@
                 "make": "allow",
                 "sleep": "allow",
                 "pmset": "allow",
-                "pkill": "allow"
+                "pkill": "allow",
+                "defaults": "allow"
             }
         },
         "architect": {

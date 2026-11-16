@@ -1,4 +1,5 @@
 APP := build/Up.app
+RUN_ARGS ?=
 
 .PHONY: build test app run install clean
 
@@ -16,7 +17,9 @@ app: build
 	codesign --force --sign - $(APP)
 
 run: app
-	open $(APP)
+	# open reuses a running instance and drops --args, so quit it and force a new one.
+	-pkill -x Up
+	open -n $(APP) --args $(RUN_ARGS)
 
 install: app
 	rm -rf /Applications/Up.app
