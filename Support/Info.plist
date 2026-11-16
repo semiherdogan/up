@@ -7,7 +7,7 @@
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.semih.up</string>
+	<string>com.semiherdogan.up</string>
 	<key>CFBundleName</key>
 	<string>Up</string>
 	<key>CFBundlePackageType</key>
