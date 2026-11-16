@@ -1,0 +1,27 @@
+{
+    "version": 1,
+    "agents": {
+        "*": {
+            "bash": {
+                "caffeinate": "allow",
+                "swift": "allow",
+                "sw_vers": "allow",
+                "xcode-select": "allow",
+                "xcodebuild": "allow",
+                "make": "allow",
+                "sleep": "allow",
+                "pmset": "allow",
+                "pkill": "allow"
+            }
+        },
+        "architect": {
+            "bash": {}
+        },
+        "implementer": {
+            "bash": {}
+        },
+        "reviewer": {
+            "bash": {}
+        }
+    }
+}
