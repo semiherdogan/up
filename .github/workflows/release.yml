@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag, for example v0.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate tag
+        # The tag becomes a make variable, and make expands "$" inside values.
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Tag must look like v1.2.3, got: $TAG" >&2
+            exit 1
+          fi
+
+      - name: Check out the tag when it already exists
+        if: github.event_name == 'workflow_dispatch'
+        # Otherwise a manual run builds the branch head but publishes under the existing tag.
+        run: |
+          # git ls-remote --exit-code uses this status when no ref matches.
+          no_matching_ref=2
+          status=0
+          git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null || status=$?
+          if [ "$status" -eq 0 ]; then
+            git fetch --depth 1 origin "refs/tags/$TAG:refs/tags/$TAG"
+            git checkout --detach "refs/tags/$TAG"
+          elif [ "$status" -ne "$no_matching_ref" ]; then
+            exit "$status"
+          fi
+
+      - name: Test
+        run: make test
+
+      - name: Build universal app
+        run: make dist VERSION="${TAG#v}" SWIFT_BUILD_FLAGS="--arch arm64 --arch x86_64"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # --target only matters for a manual run, where the tag does not exist yet.
+        run: gh release create "$TAG" "build/Up-${TAG#v}.zip" --target "$GITHUB_SHA" --generate-notes
