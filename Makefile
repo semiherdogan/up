@@ -1,7 +1,9 @@
 APP := build/Up.app
 RUN_ARGS ?=
+ICON := Support/AppIcon.icns
+ICONSET := build/AppIcon.iconset
 
-.PHONY: build test app run install clean
+.PHONY: build test icon app run install clean
 
 build:
 	swift build -c release
@@ -9,11 +11,16 @@ build:
 test:
 	swift test
 
+icon:
+	swift Scripts/make-icon.swift $(ICONSET)
+	iconutil -c icns -o $(ICON) $(ICONSET)
+
 app: build
 	rm -rf $(APP)
-	mkdir -p $(APP)/Contents/MacOS
+	mkdir -p $(APP)/Contents/MacOS $(APP)/Contents/Resources
 	cp "$$(swift build -c release --show-bin-path)/Up" $(APP)/Contents/MacOS/Up
 	cp Support/Info.plist $(APP)/Contents/Info.plist
+	cp $(ICON) $(APP)/Contents/Resources/AppIcon.icns
 	codesign --force --sign - $(APP)
 
 run: app
